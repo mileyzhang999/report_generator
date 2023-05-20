@@ -1,0 +1,6 @@
+.env
+*.md
+*.pdf
+*.html
+.vscode
+.DS_Store

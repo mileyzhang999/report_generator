@@ -78,13 +78,774 @@ Architecture diagram:
 
  ### **High**
 
+1. **Should revert or return min max tick when no initialized ticks can be found in the block map**
+
+|Severity|<span class=color-high>**High**</span>|
+|----|----|
+|Source|[contracts/libraries/TickMap.sol#L95-L97](https://github.com/poolsharks-protocol/range/blob/9522878c2029e60fdb732fddcabcc256b505eb47/contracts/libraries/TickMap.sol#L95-L97);
+[contracts/libraries/TickMap.sol#L125-L126](https://github.com/poolsharks-protocol/range/blob/9522878c2029e60fdb732fddcabcc256b505eb47/contracts/libraries/TickMap.sol#L125-L126);|
+|Commit|9522878;|
+|Status|Pending;|
+
+
+**Description**
+
+Inside the tick bitmap, the `blocks` is the block bitmap track which block contains initialized ticks. The `words` maps the block index to a word. It stores which word inside a block has initialized ticks. The `ticks` maps the word index to a tick and store which bit inside a word represents an initialized tick.
+
+When we search for the next/previous tick and we cannot find an initialized tick in the blocks and words, it returns the tick at the most/least significant words. If we do not revert or return the min/max tick when there is no initialized tick can be found, it's possible that we return a tick out of range (beyond the min-max tick range).
+
+```Solidity
+  struct TickMap {
+      uint256 blocks;                     /// @dev - sets of words
+      mapping(uint256 => uint256) words;  /// @dev - sets to words
+      mapping(uint256 => uint256) ticks;  /// @dev - words to ticks
+  }
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Return the min/max tick when there is no initialized tick can be found.
+
+**Results**
+
+Pending;
+
+2. **The function `insert()` in `Ticks.sol` fails to build the list if the input `lower` tick is higher than or equal to `ticks[upperOld].previousTick`**
+
+|Severity|<span class=color-high>**High**</span>|
+|----|----|
+|Source|[contracts/libraries/Ticks.sol#L349](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/libraries/Ticks.sol#L349);|
+|Commit|[10d47e7](https://github.com/poolsharks-protocol/range/tree/10d47e7f157b43e5c28e82c4bfacad8ecef17604/);|
+|Status|**Resolved** in commit 415c52d;|
+
+
+**Description**
+
+When the input `lower` tick is greater than or equal to the `ticks[upperOld].previousTick`, we should set the `upper` tick given from the input arguments as the `previousTick` of the `upperOld`'s tick.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+The current [L349](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/libraries/Ticks.sol#L349) in `Ticks.sol` is as follows:
+````Solidity
+if (lower > oldPrevTick) oldPrevTick = lower;
+````
+Please consider replacing this line with the following lines of code:
+````Solidity
+if (lower > oldPrevTick) {
+    oldPrevTick = lower;
+}
+else {
+    ticks[oldPrevTick].nextTick = upper;
+}
+````
+
+**Results**
+
+**Resolved** in commit 415c52d.
+
+The function was removed and now the `TickMap` library is implemented.
+
+3. **Should use `address(this)` in position instead of `msg.sender`  for fungible positions**
+
+|Severity|<span class=color-high>**High**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L64](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/RangePool.sol#L64);|
+|Commit|b137721;|
+|Status|**Resolved** in commit c3cd4f6;|
+
+
+**Description**
+
+The following piece of code should consider `address(this)` instead of `msg.sender`:
+
+```Solidity
+Position memory position = positions[params.fungible ? msg.sender : params.to][
+    params.lower
+][params.upper]; 
+```
+
+When the position is fungible, users have ERC20 tokens as proof of liquidity providing so the `address(this)` is used to mark fungible positions, but if the fungible position is falsely mapped to the user's address such as `msg.sender`, the users not only own the position tokens as proof but also the internal position mapping as proof.
+
+This means that when users mint, they get double-position proof. Therefore, they can double withdraw liquidity and fees.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Use `address(this)` in position instead of `msg.sender`.
+
+**Results**
+
+**Resolved** in commit c3cd4f6.
+
+The suggestion was implemented.
+
+4. **Overflow in bit operations on `tickIndex`**
+
+|Severity|<span class=color-high>**High**</span>|
+|----|----|
+|Source|[contracts/libraries/TickMap.sol#L119](https://github.com/poolsharks-protocol/range/blob/389b640511ee6471e6d5877ab449a961118bca13/contracts/libraries/TickMap.sol#L119);|
+|Commit|389b640;|
+|Status|Pending;|
+
+
+**Description**
+
+Overflow happens in the bit operations `~((1 << ((tickIndex & 0xFF) + 1)) - 1)` when `tickIndex>=255`. The `~` bitwise NOT operation causes overflow when `tickIndex>=255`.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+N/A
+
+**Results**
+
+Pending;
+
+5. **Possible overflow when compounding positions**
+
+|Severity|<span class=color-high>**High**</span>|
+|----|----|
+|Source|[contracts/libraries/Positions.sol#L320](https://github.com/poolsharks-protocol/range/blob/389b640511ee6471e6d5877ab449a961118bca13/contracts/libraries/Positions.sol#L320);|
+|Commit|389b640;|
+|Status|Pending;|
+
+
+**Description**
+
+The `liquidityCompounded` computed by `DyDxMath.getLiquidityForAmounts()` is an `uint256`. An overflow can happen when the `uint256` amount is cast into `uint128`:
+
+```Solidity
+position.liquidity += uint128(liquidityCompounded);
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Check that the `liquidityCompounded` variable doesn't overflows when casting to a `uint128`.
+
+**Results**
+
+Pending;
+
+6. **Missing `startPrice` validation**
+
+|Severity|<span class=color-high>**High**</span>|
+|----|----|
+|Source|[contracts/RangePoolFactory.sol#L2](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/RangePoolFactory.sol#L28);|
+|Commit|10d47e7;|
+|Status|**Resolved** in commit d18800e;|
+
+
+**Description**
+
+The `startPrice` should be a sqrtPrice within the min and max sqrtPrice range. However, there is no such check when setting `startPrice`.  The `TickMath.getTickAtSqrtRatio()` function will revert with an invalid price, which will make the first mint revert. The pool cannot function properly as no one can add liquidity to it.
+
+```Solidity
+// Ticks.sol#L307 insert() function
+int24 tickAtPrice = TickMath.getTickAtSqrtRatio(state.price);
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Use `TickMath.validatePrice()` to validate `startPrice` when setting the pool.
+
+**Results**
+
+**Resolved** in commit d18800e.
+
+The suggestion was implemented.
+
 ### **Medium**
+
+1. **`int128(amount)` can overflow in `Ticks`**
+
+|Severity|<span class=color-medium>**Medium**</span>|
+|----|----|
+|Source|[contracts/libraries/Ticks.sol#L391](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/libraries/Ticks.sol#L391);|
+|Commit|10d47e7;|
+|Status|**Resolved** in commit cab5e4e;|
+
+
+**Description**
+
+The `amount` variable is a `uint128` that is cast into `int128`. However, the previous check only ensures `amount<= state.liquidityGlobal`, where `state.liquidityGlobal` is an `uint128`. Thus,  `amount` can be larger than `type(int128).max`, and the `Ticks.remove()` function will not revert due to an overflow.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Add a check to require `amount <= type(int128).max`.
+
+**Results**
+
+**Resolved** in commit cab5e4e.
+
+The check was added.
+
+2. **Lack of a two-step process for critical operations**
+
+|Severity|<span class=color-medium>**Medium**</span>|
+|----|----|
+|Source|[contracts/utils/RangePoolAdmin.sol#L90-L93](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/utils/RangePoolAdmin.sol#L90-L93)|
+|Commit|10d47e7;|
+|Status|Pending;|
+
+
+**Description**
+
+The `RangePoolAdmin` contract handles fee-related functionality such as changing the address that will receive the fees. Since the `owner` of this contract is the only address allowed to call such critical operations, there should be a two-step process when changing ownership.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Add a two-step process for changing ownership in the `RangePoolAdmin` contract.
+
+**Results**
+
+Pending;
+
+3. **Incorrect fee update for `feeGrowthGlobal`**
+
+|Severity|<span class=color-medium>**Medium**</span>|
+|----|----|
+|Source|[contracts/libraries/FeeMath.sol#L26-L32](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/libraries/FeeMath.sol#L26-L32);|
+|Commit|10d47e7;|
+|Status|**Resolved** in commit 82150f5;|
+
+
+**Description**
+
+The `FeeMath` library updates `feeGrowthGlobal`. When `zeroForOne` is true,  users are trading token0 for token1. So the fee should be paid with token0 and the fee should be added to `pool.feeGrowthGlobal0` instead.
+```Solidity
+if (zeroForOne) {
+   pool.protocolFees.token0 += uint128(protocolFee);
+   pool.feeGrowthGlobal1 += uint216(PrecisionMath.mulDiv(feeAmount, Q128, pool.liquidity));
+} else {
+  pool.protocolFees.token1 += uint128(protocolFee);
+  pool.feeGrowthGlobal0 += uint216(PrecisionMath.mulDiv(feeAmount, Q128, pool.liquidity));
+}
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+```Solidity
+if (zeroForOne) {
+   pool.protocolFees.token1 += uint128(protocolFee);
+   pool.feeGrowthGlobal1 += uint216(PrecisionMath.mulDiv(feeAmount, Q128, pool.liquidity));
+} else {
+  pool.protocolFees.token0 += uint128(protocolFee);
+  pool.feeGrowthGlobal0 += uint216(PrecisionMath.mulDiv(feeAmount, Q128, pool.liquidity));
+}
+```
+
+**Results**
+
+**Resolved** in commit 82150f5.
+
+The suggestion was implemented.
 
 ### **Low**
 
+1. **Redundant condition when initializing tick's `feeGrowthOutside`**
+
+|Severity|<span class=color-low>**Low**</span>|
+|----|----|
+|Source|[contracts/libraries/Ticks.sol#L311](https://github.com/poolsharks-protocol/range/blob/9522878c2029e60fdb732fddcabcc256b505eb47/contracts/libraries/Ticks.sol#L311;
+);|
+|Commit|9522878;|
+|Status|**Resolved** in commit cab5e4e;|
+
+
+**Description**
+
+By convention, we assume all fees were accumulated **below** the current tick (tickAtPrice), so if the tick is below the current tick, then the tick’s fee growth outside is initialized with fee growth global. But `lower <= state.nearestTick || lower <= tickAtPrice` is used to determine if the new tick is below the current tick (tickAtPrice). Therefore, the condition is redundant as `nearestTick` ≤ `tickAtPrice`.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Compare the new tick with `tickAtPrice` only.
+
+**Results**
+
+**Resolved** in commit cab5e4e.
+
+The suggestion was implemented.
+
+2. **Follow the Checks-Effects-Interactions pattern.**
+
+|Severity|<span class=color-low>**Low**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L291-L298](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/RangePool.sol#L291-L298);|
+|Commit|10d47e7;|
+|Status|Pending;|
+
+
+**Description**
+
+The Checks-Effects-Interactions pattern is suggested to prevent reentrancy attacks.  Reset the protocol fees to zero before transferring out tokens.
+
+```Solidity
+ function collectFees() public onlyOwner returns (uint128 token0Fees, uint128 token1Fees) {
+        token0Fees = poolState.protocolFees.token0;
+        token1Fees = poolState.protocolFees.token1;
+        _transferOut(_owner.feeTo(), token0, token0Fees);
+        _transferOut(_owner.feeTo(), token1, token1Fees);
+        poolState.protocolFees.token0 = 0;
+        poolState.protocolFees.token1 = 0;
+    }
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Consider the following piece of code:
+
+```Solidity
+ function collectFees() public onlyOwner returns (uint128 token0Fees, uint128 token1Fees) {
+        token0Fees = poolState.protocolFees.token0;
+        token1Fees = poolState.protocolFees.token1;
+        poolState.protocolFees.token0 = 0;
+        poolState.protocolFees.token1 = 0;
+        _transferOut(_owner.feeTo(), token0, token0Fees);
+        _transferOut(_owner.feeTo(), token1, token1Fees);
+    }
+```
+
+**Results**
+
+Pending;
+
+3. **Unused items**
+
+|Severity|<span class=color-low>**Low**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L25](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/RangePool.sol#L25);
+[contracts/libraries/Ticks.sol#L11](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/libraries/Ticks.sol#L11);
+[contracts/libraries/Ticks.sol#L15](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/libraries/Ticks.sol#L15);
+[contracts/utils/SafeTransfers.sol#L6](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/utils/SafeTransfers.sol#L6);
+[contracts/libraries/Positions.sol#L14-L25](https://github.com/poolsharks-protocol/range/blob/5e1fa64a39b2cb674b68af98e7348d02e6c2893a/contracts/libraries/Positions.sol#L14-L25);
+[contracts/libraries/TickMath.sol#L18](https://github.com/poolsharks-protocol/range/blob/5e1fa64a39b2cb674b68af98e7348d02e6c2893a/contracts/libraries/TickMath.sol#L18);
+[contracts/interfaces/IRangePoolStructs.sol#L38-L42](https://github.com/poolsharks-protocol/range/blob/7bd61889559d0b519471023f6eb92b6a871dbe38/contracts/interfaces/IRangePoolStructs.sol#L38-L42);
+[contracts/interfaces/IRangePoolStructs.sol#L104-L112](https://github.com/poolsharks-protocol/range/blob/7bd61889559d0b519471023f6eb92b6a871dbe38/contracts/interfaces/IRangePoolStructs.sol#L104-L112);
+[contracts/interfaces/IRangePoolStructs.sol#L114-L119](https://github.com/poolsharks-protocol/range/blob/7bd61889559d0b519471023f6eb92b6a871dbe38/contracts/interfaces/IRangePoolStructs.sol#L114-L119);
+[contracts/interfaces/IRangePoolStructs.sol#L136-L144](https://github.com/poolsharks-protocol/range/blob/7bd61889559d0b519471023f6eb92b6a871dbe38/contracts/interfaces/IRangePoolStructs.sol#L136-L144);|
+|Commit|b137721;|
+|Status|Pending;|
+
+
+**Description**
+
+There are custom errors, imports, and other items that are defined but not used. All of them have been specified in the source section.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Remove unused items.
+
+**Results**
+
+Pending;
+
+4. **No function for users to claim accumulated tokens only**
+
+|Severity|<span class=color-low>**Low**</span>|
+|----|----|
+|Source|[*Global](https://github.com/poolsharks-protocol/range/tree/5e1fa64a39b2cb674b68af98e7348d02e6c2893a/contracts);|
+|Commit|5e1fa64;|
+|Status|**Acknowledged**;|
+
+
+**Description**
+
+There is no function for users to collect accumulated fees only. Users can only collect tokens through `RangePool.burn()`.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Add a `collect()` function to allow users to collect accumulated tokens only.
+
+**Results**
+
+**Acknowledged**.
+
+Response from the Poolshark team:
+
+> For this, the user should call `burn` with amount `0` and collect set to `true`. Splitting this functionality out into a separate function makes the bytecode size larger by approximately 2kb.
+
+5. **Lack of event emission for critical operation**
+
+|Severity|<span class=color-low>**Low**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L287](https://github.com/poolsharks-protocol/range/blob/7bd61889559d0b519471023f6eb92b6a871dbe38/contracts/RangePool.sol#L287)|
+|Commit|7bd6188;|
+|Status|Pending;|
+
+
+**Description**
+
+Events are important because off-chain monitoring tools rely on them to index important state changes to the contracts.
+
+Similar to Uniswap V3, the `RangePool` contract should consider the emission of an event when the owner decides to collect the fees:
+
+https://github.com/Uniswap/v3-core/blob/main/contracts/UniswapV3Pool.sol#L868
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Add the missing events.
+
+**Results**
+
+Pending;
+
 ### **Informational**
 
+1. **Floating solidity pragma version**
+
+|Severity|<span class=color-info>**Informational**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L2](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/RangePool.sol#L2);<br/>
+[contracts/RangePoolERC20.sol#L2](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/RangePoolERC20.sol#L2);<br/>
+[contracts/RangePoolFactory.sol#L2](https://github.com/poolsharks-protocol/range/blob/b1377212a6a4da56d97103e16ba8956bad162e8c/contracts/RangePoolFactory.sol);|
+|Commit|b137721;|
+|Status|**Resolved** in commit 449042d;|
+
+
+**Description**
+
+Current smart contracts use `^0.8.13`. And compilers within versions`≥ 0.8.13` and `<0.9.0` can be used to compile those contracts. Therefore, the contract may be deployed with a newer or latest compiler version which generally has higher risks of undiscovered bugs. 
+
+It is a good practice to fix the solidity pragma version if the contract is not designed as a package or library that will be used by other projects or developers.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Use the fixed solidity pragma version.
+
+**Results**
+
+**Resolved** in commit 449042d.
+
+The solidity pragma version was set to `0.8.13`.
+
+2. **Tick bit map can be very sparse with big tick spacing**
+
+|Severity|<span class=color-info>**Informational**</span>|
+|----|----|
+|Source|[contracts/libraries/TickMap.sol#L149](https://github.com/poolsharks-protocol/range/blob/9522878c2029e60fdb732fddcabcc256b505eb47/contracts/libraries/TickMap.sol#L149);|
+|Commit|9522878;|
+|Status|Pending;|
+
+
+**Description**
+
+Tick bitmap keeps track of initialized ticks. However, with big tick spacing, the tick bitmap can be very sparse. Tick storing and searching can be less efficient in a sparse tick bitmap.
+
+In`TickBitMap` library in UniSwapV3, the tick bitmap compresses the tick by removing its tick spacing. 
+```Solidity
+int24 compressed = tick / tickSpacing;
+```
+When the tick spacing is one, the 0, 1, and 2 bits in the tick bitmap represent the tick 0, 1, and 2. When the tick spacing is two, the 0, 1, and 2 bits in the tick bitmap represent the tick 0, 2, and 4, but if we don't remove the tick spacing, we have to use the 0, 2, and 4 bits in the tick bitmap to represent the tick 0, 2, and 4. The tick bitmap becomes very sparse. By removing the tick spacing, the tick bitmap can represent ticks using a compact bitmap regardless of the tick spacing.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Remove the tick spacing when compressing the tick.
+
+**Results**
+
+Pending;
+
+3. **Should burn only when the amount is not zero**
+
+|Severity|<span class=color-info>**Informational**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L140](https://github.com/poolsharks-protocol/range/blob/5e1fa64a39b2cb674b68af98e7348d02e6c2893a/contracts/RangePool.sol#L140);|
+|Commit|5e1fa64;|
+|Status|**Resolved** in commit 02e3f50;|
+
+
+**Description**
+
+The `burn()` function of the position token can be called when the amount is zero, resulting in unnecessary gas costs.
+```Solidity
+positionToken.burn(msg.sender, params.amount);
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Burn the token only when the amount is not zero.
+
+**Results**
+
+**Resolved** in commit 02e3f50.
+
+The suggestion was implemented.
+
+4. **Unnecessary conditional operation**
+
+|Severity|<span class=color-info>**Informational**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L108](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/RangePool.sol#L108);|
+|Commit|10d47e7;|
+|Status|Pending;|
+
+
+**Description**
+
+The conditional (ternary) operation is unnecessary as the `params.fungible` is always true here:
+
+```Solidity
+  if (params.fungible) {
+      // ...
+
+        CompoundParams(
+            params.fungible ? address(this) : params.to,  // Unnecessary conditional operation
+     //
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Change the operation to `address(this)`.
+
+```Solidity
+CompoundParams(
+            address(this),
+             // ..
+```
+
+**Results**
+
+Pending;
+
+5. **Variables can be marked as `immutable` variables**
+
+|Severity|<span class=color-info>**Informational**</span>|
+|----|----|
+|Source|[contracts/RangePoolERC20.sol#L9-L10](https://github.com/poolsharks-protocol/range/blob/e833df81af46c71b3e762854d87924f7b29f9e9a/contracts/RangePoolERC20.sol#L9-L10);|
+|Commit|e833df8;|
+|Status|**Resolved** in commit 449042d;|
+
+
+**Description**
+
+Variables that are never changed after being initialized in the constructor can be marked as `immutable` variables. 
+For example, the following variables can be marked as `immutable` variables.
+
+- `RangePoolERC20`
+   ```Solidity
+    address owner;
+    uint8 _decimals;
+  ```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Mark those variables as `immutable` variables.
+
+**Results**
+
+**Resolved** in commit 449042d.
+
+The variables were marked as `immutable`.
+
 ### **Undetermined**
+
+1. **Auto-compounding issues**
+
+|Severity|<span class=color-undetermined>**Undetermined**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L108](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/RangePool.sol#L108);|
+|Commit|10d47e7;|
+|Status|Pending;|
+
+
+**Description**
+
+When a user mints liquidity for a fungible position, all the accrued fees on the position will be used for auto-compounding.  Those fees will be used to mint new liquidity at the current position.
+
+This auto-compounding can increase capital efficiency as fees are collected and used to mint liquidity. However, this compounding feature should be optional for users as liquidity providers suffer from impermanent loss.  It would be better if only the fees occurred by the users are used for auto-compounding, rather than fees of the whole position.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Make the compounding optional to users. only compound fees owed by users rather than the whole position.
+
+**Results**
+
+Pending;
+
+2. **Overflow in swap**
+
+|Severity|<span class=color-undetermined>**Undetermined**</span>|
+|----|----|
+|Source|[contracts/libraries/Ticks.sol#L171-L182](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/libraries/Ticks.sol#L171-L182);|
+|Commit|10d47e7;|
+|Status|**Acknowledged**;|
+
+
+**Description**
+
+Price will change after swapping in token0. overflow can happen in `∆x*∆√p`
+<img width="336" alt="image" src="https://user-images.githubusercontent.com/101599447/225443550-c0f387d3-db71-4ab3-a5de-be1a7e70d39d.png">
+
+We need to use an alternative formula when it overflows
+<img width="271" alt="image" src="https://user-images.githubusercontent.com/101599447/225443656-29ecd0c9-c087-4bb1-9d53-c542ea26b1cc.png">
+```Solidity
+    // We can swap within the current range.
+    uint256 liquidityPadded = uint256(pool.liquidity) << 96;
+    // calculate price after swap
+    uint256 newPrice = PrecisionMath.mulDivRoundingUp(
+        liquidityPadded,
+        pool.price,
+        liquidityPadded + uint256(pool.price) * uint256(cache.input)
+    );
+    /// @auditor - check tests to see if we need overflow handle
+    // if (!(nextTickPrice <= newPrice && newPrice < pool.price)) {
+    //     newPrice = uint160(PrecisionMath.divRoundingUp(liquidityPadded, liquidityPadded / pool.price + cache.input));
+    //  }
+```
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+
+
+**Results**
+
+**Acknowledged**.
+
+Response from the Poolshark team:
+
+> From the tests I ran, it was impossible to overflow. The reason is that a higher `Pold` means a lower L value and also a higher L value means a lower `Pold`.
+
+3. **`PoolState.secondsGrowthGlobal` is never assigned with real value**
+
+|Severity|<span class=color-undetermined>**Undetermined**</span>|
+|----|----|
+|Source|[contracts/interfaces/IRangePoolStructs.sol#L15](https://github.com/poolsharks-protocol/range/blob/7bd61889559d0b519471023f6eb92b6a871dbe38/contracts/interfaces/IRangePoolStructs.sol#L15);|
+|Commit|7bd6188;|
+|Status|**Acknowledged**;|
+
+
+**Description**
+
+The `PoolSatet.secondsGrowthGlobal` is initialized with zero value when the pool is created but it's never assigned with real value after that.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+N/A
+
+**Results**
+
+**Acknowledged**.
+
+Response from the Poolshark team:
+
+> `secondsGrowthGlobal` is meant to be used for TWAP and liquidity oracle calculations which I have not yet implemented.
+
+4. **Non-fungible position can be minted to `address(this)`**
+
+|Severity|<span class=color-undetermined>**Undetermined**</span>|
+|----|----|
+|Source|[contracts/RangePool.sol#L71-L73](https://github.com/poolsharks-protocol/range/blob/10d47e7f157b43e5c28e82c4bfacad8ecef17604/contracts/RangePool.sol#L71-L73);|
+|Commit|10d47e7;|
+|Status|**Acknowledged**;|
+
+
+**Description**
+
+fungible positions are updated at `address(this)`. But the `address(this)` position does not solely contain fungible positions. Non-fungible positions can also be created at `address(this)` if one mints non-fungible to `address(this)`.
+
+For the current design, the positions minted to `address(this)` will just be like a donation to the fungible position as all the position token holder shares all the liquidity/accumulated fees entitled to the position.
+
+**Exploit Scenario**
+
+N/A
+
+**Recommendations**
+
+Add a check to prevent the non-fungible position from being minted to `address(this)`
+
+**Results**
+
+**Acknowledged**.
+
+Response from the PoolShark team:
+
+> This is intended. The way liquidity mining can be done.
 
 ## Use Case Scenarios
 
