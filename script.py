@@ -86,7 +86,9 @@ def generate_readme_content():
 def combine_severity_findings_files(severity):
     findings_content = ""
     findings_content += "### " + "**" + severity + "**\n\n"
-    count = 1
+    total = 0
+    resolved = 0
+    acknowledged = 0
 
     # Find the files with the severity
     mark = "finding-"
@@ -98,28 +100,37 @@ def combine_severity_findings_files(severity):
     # check files in the current directory
     for file in os.listdir('./'):
         if file.endswith(".md") and mark in file:
-            findings_content += finding_file_parser(file, count, severity)
-            count += 1
+            total += 1
+            (a, b, content) = finding_file_parser(file, total, severity)
+            findings_content += content
+            resolved += a
+            acknowledged += b
 
-    return findings_content
+    return (total, resolved, acknowledged, findings_content)
 
 
 # Function to combine all findings files
 def combine_all_findings_files():
-    content = '''## Findings & Improvement Suggestions
+    content = ""
+    status_content = '''## Findings & Improvement Suggestions
 
 |Severity|**Total**|**Acknowledged**|**Resolved**|
 |---|---|---|---|
-|<span class="color-high">**High**</span>|8|3|3|
-|<span class="color-medium">**Medium**</span>|4|2|2|
-|<span class="color-low">**Low**</span>|5|2|1|
-|<span class="color-info">**Informational**</span>|6|3|3|
-|<span class="color-undetermined">**Undetermined**</span>|4|3|0|\n\n '''
-
+'''
     severity_list = ["High", "Medium", "Low", "Informational", "Undetermined"]
     for severity in severity_list:
-        content += combine_severity_findings_files(severity)
-    return content
+        total, resolved, ackownledged, findings_content = combine_severity_findings_files(severity)
+        if total > 0:
+            if severity == "Informational":
+                color = 'info'
+            else:
+                color = severity.lower()
+            status_content += f"|<span class='color-{color}'>**{severity}**</span>|{total}|{ackownledged}|{resolved}|"
+            content += findings_content
+
+    status_content += "\n\n"
+    content += "\n\n"
+    return status_content + content
 
 
 # Output Markdown file

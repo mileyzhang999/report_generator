@@ -57,7 +57,7 @@ def write_readme_to_github(access_token, repo, file_path):
 #write_readme_to_github(access_token, report_url, report_file)
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        repo = f'report-{sys.argv[1]}-project'
+        repo = f'report-{sys.argv[1]}'
         write_readme_to_github(access_token, repo, readme_file)
     else:
         print("No input value provided.")

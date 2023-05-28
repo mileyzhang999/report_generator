@@ -37,7 +37,8 @@ def finding_file_parser(filename, number_of_sections, severity):
     exploit_scenario_content = extract_content('Exploit Scenario', 'Remediation', text)
     recommendations_content = extract_content('Recommendations', 'Results', text)
     results_content = extract_content('Results', 'EOF', text)
-
+    resolved_status = 0
+    acknowledged_status = 0
     # Combine the content of each section
     content = ""
 
@@ -69,7 +70,12 @@ def finding_file_parser(filename, number_of_sections, severity):
     content += "**Results**\n\n"
     content += results_content + "\n\n"
 
-    return content
+    if 'resolved' in status_content.lower():
+        resolved_status = 1
+    if 'acknowledged' in status_content.lower():
+        acknowledged_status = 1
+
+    return (resolved_status, acknowledged_status, content)
 
 
 # Call the function to return file content
