@@ -125,6 +125,22 @@ def x_title_content_parser(file_path):
 
     return content
 
+def table_content():
+    return """
+## Table of Contents
+
+   - [About Verilog Solutions](#about-verilog-solutions)
+   - [Service Scope](#service-scope)
+   - [Project Summary](#project-summary)
+   - [Findings & Improvement Suggestions](#findings--improvement-suggestions)
+   - [Use Case Scenarios](#use-case-scenarios)
+   - [Access Control Analysis](#access-control-analysis)
+   - [Appendix I: Severity Categories](#appendix-i-severity-categories)
+   - [Appendix II: Status Categories](#appendix-ii-status-categories)
+   - [Disclaimer](#disclaimer)
+   \n\n
+   """
+
 # print(get_raw_file_content('access-control.md'))
 # print(extract_content('title', 'content', get_raw_file_content('access-control.md')))
 

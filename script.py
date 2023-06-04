@@ -1,6 +1,6 @@
 
 import os
-from file_parser import finding_file_parser, title_content_parser, whole_file_parser, x_title_content_parser
+from file_parser import finding_file_parser, title_content_parser, whole_file_parser, x_title_content_parser, table_content
 import pdfkit
 import markdown
 import subprocess
@@ -57,7 +57,9 @@ def generate_readme_content():
     content += x_title_content_parser("OtherMarkdown/about.md")
 
     # table of contents
+    content += table_content()
 
+    # service scope
     content += title_content_parser("OtherMarkdown/service-scope.md")
 
     # project summary
@@ -117,7 +119,7 @@ def combine_all_findings_files():
 |Severity|**Total**|**Acknowledged**|**Resolved**|
 |---|---|---|---|
 '''
-    severity_list = ["High", "Medium", "Low", "Informational", "Undetermined"]
+    severity_list = ["High", "Medium", "Low", "Informational", "Concerns", "Enhancement", "Undetermined"]
     for severity in severity_list:
         total, resolved, ackownledged, findings_content = combine_severity_findings_files(severity)
         if total > 0:
@@ -125,7 +127,8 @@ def combine_all_findings_files():
                 color = 'info'
             else:
                 color = severity.lower()
-            status_content += f"|<span class='color-{color}'>**{severity}**</span>|{total}|{ackownledged}|{resolved}|"
+            print(f"severity: {severity}, total: {total}, resolved: {resolved}, ackownledged: {ackownledged}")
+            status_content += f"|<span class='color-{color}'>**{severity}**</span>|{total}|{ackownledged}|{resolved}|\n"
             content += findings_content
 
     status_content += "\n\n"

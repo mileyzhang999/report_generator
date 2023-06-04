@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 import sys
 
-severity_lists = ["low", "medium", "high", "undetermined", "informational"]
+severity_lists = ["low", "medium", "high", "undetermined", "info", "concerns", "enhancement"]
 
 load_dotenv()
 access_token = os.getenv("ACCESS_TOKEN")
@@ -49,13 +49,8 @@ def fetch_github_issue(owner, repo, issue_number):
         for label in issue_labels:
             if label == "invalid":
                 return None
-            if label in severity_lists:
-                is_issue_valid = True
-            if label.endswith("-ok"):
-                count_ok += 1
 
-        if is_issue_valid and count_ok == 2:
-            generate_severity_issue_file(issue_number, issue_body, issue_labels)
+        generate_severity_issue_file(issue_number, issue_body, issue_labels)
 
         return issue_title
     
