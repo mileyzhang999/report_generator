@@ -1,9 +1,7 @@
 [title]
-About Verilog Solutions
+About Canary Technologies
 
 [content]
-Founded by a group of cryptography researchers and smart contract engineers in North America, Verilog Solutions elevates the security standards for Web3 ecosystems by being a full-stack Web3 security firm covering smart contract security, consensus security, and operational security for Web3 projects.
-
-Verilog Solutions team works closely with major ecosystems and Web3 projects and applies a quality above quantity approach with a continuous security model. Verilog Solutions onboards the best and most innovative projects and provides the best-in-class advisory services on security needs, including on-chain and off-chain components.
+The mission of Canary Technologies Inc. is to secure Web3 for all. We are powered by world-class technical capabilities and acumen, which allows us to perform granular security audits for Web3 applications and protocols. We not only audit clients' codes from a technical perspective, but also consider the connection between the codes and business vision. Our team of experts is committed to helping Web3 innovators bring value to society in the most trustworthy way possible. 
 
 EOF

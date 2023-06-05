@@ -1,6 +1,6 @@
 
 import os
-from file_parser import finding_file_parser, title_content_parser, whole_file_parser, x_title_content_parser, table_content
+from file_parser import finding_file_parser, title_content_parser, whole_file_parser, x_title_content_parser
 import pdfkit
 import markdown
 import subprocess
@@ -54,10 +54,10 @@ def generate_readme_content():
     content += whole_file_parser("OtherMarkdown/head.md")
 
     # about
-    content += x_title_content_parser("OtherMarkdown/about.md")
+    content += x_title_content_parser("DefaultMarkdown/about.md")
 
-    # table of contents
-    content += table_content()
+    # table content
+    content += whole_file_parser("table-content.md")
 
     # service scope
     content += title_content_parser("OtherMarkdown/service-scope.md")
@@ -127,7 +127,7 @@ def combine_all_findings_files():
                 color = 'info'
             else:
                 color = severity.lower()
-            print(f"severity: {severity}, total: {total}, resolved: {resolved}, ackownledged: {ackownledged}")
+            #print(f"severity: {severity}, total: {total}, resolved: {resolved}, ackownledged: {ackownledged}")
             status_content += f"|<span class='color-{color}'>**{severity}**</span>|{total}|{ackownledged}|{resolved}|\n"
             content += findings_content
 

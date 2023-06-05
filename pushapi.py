@@ -1,6 +1,7 @@
 import requests
 import base64
 import os
+from git import Repo
 from dotenv import load_dotenv
 import sys
 
@@ -13,7 +14,7 @@ readme_file = os.getenv("README_FILE")
 report_file = os.getenv("REPORT_FILE")
 base_url = os.getenv("BASE_URL")
 
-def write_readme_to_github(access_token, repo, file_path):
+def write_files_to_github(access_token, repo, file_path):
     url = f"{base_url}/repos/{organization}/{repo}/contents/{file_path}"
     # Headers for authentication
     headers = {
@@ -53,11 +54,12 @@ def write_readme_to_github(access_token, repo, file_path):
     else:
         print(f"Error occurred while writing {file_path}:", response.status_code)
 
-#write_readme_to_github(access_token, repo, readme_file)
-#write_readme_to_github(access_token, report_url, report_file)
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         repo = f'report-{sys.argv[1]}'
-        write_readme_to_github(access_token, repo, readme_file)
+        write_files_to_github(access_token, repo, readme_file)
+        #send_images_to_repo(repo, 'Picture1.png')
+        write_files_to_github(access_token, repo, 'Picture1.png')
     else:
         print("No input value provided.")

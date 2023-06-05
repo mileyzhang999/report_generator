@@ -114,32 +114,17 @@ def x_title_content_parser(file_path):
     title_matches = re.findall(pattern, data, re.DOTALL)
 
     pattern = r"\[content\](.*?)EOF"
-    base_match = re.search(pattern, data, re.DOTALL)
+    base_match = re.findall(pattern, data, re.DOTALL)
 
     title_contents = [match.strip() for match in title_matches]
-    base_content = base_match.group(1).strip() if base_match else None
+    base_contents = [match.strip() for match in base_match]
 
     for i in range(len(title_contents)):
         content += '## ' + title_contents[i] + '\n\n'
-        content += base_content + '\n\n'
+        content += base_contents[i] + '\n\n'
 
     return content
 
-def table_content():
-    return """
-## Table of Contents
-
-   - [About Verilog Solutions](#about-verilog-solutions)
-   - [Service Scope](#service-scope)
-   - [Project Summary](#project-summary)
-   - [Findings & Improvement Suggestions](#findings--improvement-suggestions)
-   - [Use Case Scenarios](#use-case-scenarios)
-   - [Access Control Analysis](#access-control-analysis)
-   - [Appendix I: Severity Categories](#appendix-i-severity-categories)
-   - [Appendix II: Status Categories](#appendix-ii-status-categories)
-   - [Disclaimer](#disclaimer)
-   \n\n
-   """
 
 # print(get_raw_file_content('access-control.md'))
 # print(extract_content('title', 'content', get_raw_file_content('access-control.md')))

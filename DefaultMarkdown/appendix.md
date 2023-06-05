@@ -1,13 +1,14 @@
 [title] 
-Appendix I: Severity Categories
+Appendix I: Security Issue Severities
 
 [content]
-| Severity | Description |
+| Level of Severity | Explanation |
 | --- | --- |
-| High | Issues that are highly exploitable security vulnerabilities. It may cause direct loss of funds / permanent freezing of funds. All high severity issues should be resolved. |
-| Medium | Issues that are only exploitable under some conditions or with some privileged access to the system. Users’ yields/rewards/information is at risk. All medium severity issues should be resolved unless there is a clear reason not to. |
-| Low | Issues that are low risk. Not fixing those issues will not result in the failure of the system. A fix on low severity issues is recommended but subject to the clients’ decisions. |
-| Informational | Issues that pose no risk to the system and are related to the security best practices. Not fixing those issues will not result in the failure of the system. A fix on informational issues or adoption of those security best practices-related suggestions is recommended but subject to clients’ decision. |
+| High | Issues that have security vulnerabilities with high risks. A high level risk issue is defined as when a successfully exploit occurs, it results in direct loss of funds or permanent freezing of funds. The high risk severity issues must be resolved. |
+| Medium | Issues that have security vulnerabilities with medium risks. A medium level risk issue is only exploitable under conditions or with some prerequisites. All medium severity issues must be resolved unless there are clear explanations or standard operation procedures to avoid the potential rish to be exploited. |
+| Low | Issues that have security vulnerabilities with low risks. A low level risk issue would not result in the failure of the system when a hacker realizes it. The client can decide if they want to revise the code for a low level risk issue. |
+| Informational | Issues that pose no risk to the system but related with the best practices. The client can decide if they want to revise the code for an informational level issue. |
+| Concerned | Issues that are not included in the auditing scope but we suggest the client to double check before the launch. |
 
 EOF
 
@@ -17,9 +18,8 @@ Appendix II: Status Categories
 [content]
 | Status | Description |
 | --- | --- |
-| Unresolved | The issue is not acknowledged and not resolved. |
-| Partially Resolved | The issue has been partially resolved |
-| Acknowledged | The Finding / Suggestion is acknowledged but not fixed / not implemented. |
-| Resolved | The issue has been sufficiently resolved |
+| Unresolved | The issue is not acknowledged nor resolved. |
+| Acknowledged | The issue is acknowledged but not resolved. |
+| Resolved | The issue has been resolved. |
 
 EOF

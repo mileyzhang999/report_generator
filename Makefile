@@ -20,6 +20,8 @@ c:
 clean:
 	@echo "Deleting all the markdown and pdf files ..."
 	@rm -f *.md
-	@rm -f *.pdf
 	@rm -f *.txt
 	@rm -f *.html
+	@rm -f *.png
+	@rm -f OtherMarkdown/*.md
+	@rm -f DefaultMarkdown/*.md
